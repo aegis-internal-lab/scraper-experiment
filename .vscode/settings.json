@@ -1,0 +1,17 @@
+{
+  "editor.formatOnSave": true,
+  "editor.tabSize": 2,
+  "editor.defaultFormatter": "charliermarsh.ruff",
+  "ruff.fixAll": true,
+  "ruff.lineLength": 100,
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "explicit",
+    "source.convertImportFormat": "explicit",
+    "source.organizeImports": "explicit"
+  },
+  "python.analysis.autoImportCompletions": true,
+  "python.analysis.typeCheckingMode": "standard",
+  "python.analysis.diagnosticSeverityOverrides": {
+    "reportMissingTypeStubs": "information",
+  },
+}
