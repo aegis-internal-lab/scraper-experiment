@@ -24,7 +24,9 @@ def create_app():
 
 
 def server():
-    config = uvicorn.Config("scraper.main:create_app", port=5000, log_level="info", reload=True)
+    config = uvicorn.Config(
+        "scraper.main:create_app", port=5000, log_level="info", reload=True, host="0.0.0.0"
+    )
     server = uvicorn.Server(config)
 
     if asyncio.get_event_loop().is_running():

@@ -1,0 +1,26 @@
+services:
+  mysql:
+    image: mysql:latest
+    container_name: mysql
+    env_file:
+      - .env
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  scraper:
+    build: .
+    container_name: scraper
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    depends_on:
+      - mysql
+    volumes:
+      - .:/usr/src/app
+    command: python -m scraper.main:server
+
+volumes:
+  mysql_data:
