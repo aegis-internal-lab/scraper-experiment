@@ -4,7 +4,7 @@ import uvicorn
 from blacksheep import Application
 from tortoise.contrib.blacksheep import register_tortoise
 
-from scraper.configs.constants import DATABASE_URL, GEMINI_API_KEY
+from scraper.configs.constants import DATABASE_URL
 from scraper.configs.openapidocs import docs
 from scraper.routes.routers import base
 
