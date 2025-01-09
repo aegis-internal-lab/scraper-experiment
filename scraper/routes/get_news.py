@@ -12,13 +12,14 @@ from scraper.routes.routers import base
     tags=["News"],
 )
 @base.get("/get-news/")
-async def get_news(keyword: str):
+async def get_news(keyword: str, use_rca: bool):
     """
     Getting news list from Google News
 
-    @param keywords: The keywords to search for
+    @param keyword: The keywords to search
+    @param use_rca: Use Root Cause Analysis
     """
-    result = await get_news_list(keyword)
+    result = await get_news_list(keyword, use_rca)
     if result.status == Status.ERROR:
         return json({"message": result.message}, status=500)
     return json({"message": f"news-result: {result.message}"}, status=200)

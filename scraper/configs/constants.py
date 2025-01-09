@@ -1,4 +1,7 @@
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Database
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite://db.sqlite3")
@@ -19,3 +22,4 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 RC_ANALYSIS_PROMPT = os.getenv("RC_ANALYSIS_PROMPT")
 SENTIMENT_ANALYSIS_PROMPT = os.getenv("SENTIMENT_ANALYSIS_PROMPT")
 PROMINENT_ANALYSIS_PROMPT = os.getenv("PROMINENT_ANALYSIS_PROMPT")
+EXTRACTING_PROMPT = os.getenv("EXTRACTING_PROMPT")

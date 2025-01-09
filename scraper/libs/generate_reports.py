@@ -1,12 +1,14 @@
 from google import generativeai
-
+import json
 from scraper.configs.constants import (
     AI_MODEL,
+    EXTRACTING_PROMPT,
     GEMINI_API_KEY,
     PROMINENT_ANALYSIS_PROMPT,
     RC_ANALYSIS_PROMPT,
     SENTIMENT_ANALYSIS_PROMPT,
 )
+from scraper.configs.models import ResponseContent
 from scraper.libs.logger import logger
 from scraper.libs.utils import get_current_data
 
@@ -55,3 +57,10 @@ async def prominent_analysis(url: str):
         "prominent_analysis",
         "has_prominent_analysis",
     )
+
+async def extract_content_site(url:str):
+    logger.info(f"Preparing to extract content for {url}")
+    response = model.generate_content(f"{EXTRACTING_PROMPT} {url}")
+    print(response.text)
+    logger.info("Content Extracted.")
+    return ResponseContent(**json.loads(response.text))

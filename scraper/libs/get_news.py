@@ -3,22 +3,27 @@ from googlenewsdecoder import new_decoderv1
 
 from scraper.configs.constants import INTERVAL_TIME
 from scraper.configs.models import ResponseJSON, Site, Status
+from scraper.libs.generate_reports import extract_content_site, rc_analysis
 from scraper.libs.logger import logger
 
+news_scraper = GNews(max_results=2, period="2d")
 
-async def _get_news_real_url(news: dict[str, str]) -> None:
-    logger.info("Getting Real URL...")
+async def _get_news_real_url_and_content(news: dict[str, str], use_rca: bool) -> None:
+    truncated_string = news['url'][:30] + "..." if len(news['url']) > 30 else news['url']
+    logger.info(f"Getting Real URL from ${truncated_string}")
     result = new_decoderv1(news["url"], interval=INTERVAL_TIME)["decoded_url"]
     logger.info("Real URL Retrieved")
+    site = await extract_content_site(news["url"])
     logger.info("Saving Masked URL and Real URL to Database...")
-    await Site.create(masked_url=news["url"], url=result)
+    await Site.create(masked_url=news["url"], url=result, title=site.title, content=site.content)
     logger.info("Masked URL and Real URL Saved to Database")
+    if(use_rca):
+        await rc_analysis(result)
 
 
-async def get_news_list(keyword: str) -> ResponseJSON:
+async def get_news_list(keyword: str, use_rca: bool) -> ResponseJSON:
     try:
         logger.info("Initializing Scraper...")
-        news_scraper = GNews(max_results=2, period="2d")
         logger.info("Scraper Initialized")
 
         logger.info("Getting News...")
@@ -29,7 +34,7 @@ async def get_news_list(keyword: str) -> ResponseJSON:
 
         if latest_news is not None:
             for news in latest_news:
-                await _get_news_real_url(news)
+                await _get_news_real_url_and_content(news, use_rca)
         return ResponseJSON(status=Status.SUCCESS, message="News fetched successfully")
     except Exception as e:
         logger.error(f"Error: {e}")

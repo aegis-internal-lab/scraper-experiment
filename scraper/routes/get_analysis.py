@@ -51,6 +51,4 @@ async def gen_rc_analysis(url: str):
             url: current_data.url,
             "masked-url": current_data.masked_url,
             "rc-analysis": current_data.rc_analysis,
-            "sentiment-analysis": current_data.sentiment_analysis,
-            "prominent_analysis": current_data.prominent_analysis,
         }
