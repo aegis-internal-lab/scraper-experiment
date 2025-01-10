@@ -1,5 +1,7 @@
 import asyncio
+import os
 
+import daemon
 import uvicorn
 from blacksheep import Application
 from tortoise.contrib.blacksheep import register_tortoise
@@ -25,17 +27,29 @@ def create_app():
 
 def server():
     config = uvicorn.Config(
-        "scraper.main:create_app", port=5000, log_level="info", reload=True, host="0.0.0.0"
+        "scraper.main:create_app", port=5000, log_level="info", reload=False, host="0.0.0.0"
     )
     server = uvicorn.Server(config)
 
     if asyncio.get_event_loop().is_running():
-        # If an event loop is already running, serve the application
         asyncio.create_task(server.serve())
     else:
-        # Otherwise, run normally
         asyncio.run(server.serve())
 
 
+def run_as_daemon():
+    with daemon.DaemonContext(
+        working_directory=os.getcwd(),  # Ensure it runs in the project directory
+        stdout=open("/tmp/app_stdout.log", "a"),  # Redirect standard output
+        stderr=open("/tmp/app_stderr.log", "a"),  # Redirect standard error
+    ):
+        server()
+
+
 if __name__ == "__main__":
-    server()
+    import sys
+
+    if len(sys.argv) > 1 and sys.argv[1] == "daemon":
+        run_as_daemon()
+    else:
+        server()
