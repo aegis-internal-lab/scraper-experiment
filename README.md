@@ -49,7 +49,7 @@ HTTPS_PROXY=
 # ====================
 # The AI model to be used for analysis. 
 # Default is "gemini-2.0-flash-exp". Replace with your desired model.
-AI_MODEL=gemini-2.0-flash-exp
+AI_MODEL=gemini-2.0-flash
 
 # The API key for the AI model. Required for authentication. get it from https://ai.google.dev/gemini-api/docs/api-key
 GEMINI_API_KEY=
@@ -67,5 +67,5 @@ SENTIMENT_ANALYSIS_PROMPT=
 PROMINENT_ANALYSIS_PROMPT=
 
 # For extracting specific information from the scraped data.
-EXTRACTING_PROMPT=Extract the data and return it as a *single-line* JSON string, with *no* surrounding backticks, markdown, or other commentary. The JSON should have the following format: "{"title": "title of the url", "content": "content of the url article"}" . The output must contain *only* the single-line, valid JSON string. The provided content url is
+EXTRACTING_PROMPT=Extract the title and content from the given URL and return them as a single-line, valid JSON string, with no surrounding backticks, markdown, or other commentary. The JSON must adhere to the following format: {"title": "Title of the URL, or 'N/A' if unavailable", "content": "Content of the URL article, or 'N/A' if unavailable"}. The output must contain only the single-line, valid JSON string. Ensure proper JSON escaping for special characters within the title and content fields (e.g., quotes, backslashes, etc.). Prioritize extracting the most relevant content, focusing on the main article text and excluding navigation, ads, or boilerplate. If the URL points to a non-textual resource (e.g., an image or PDF), return "N/A" for both "title" and "content". Handle potential errors (e.g., network issues, invalid URLs) gracefully and return a valid JSON with "N/A" values where necessary.
 ```
