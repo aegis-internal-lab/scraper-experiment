@@ -63,6 +63,8 @@ async def prominent_analysis(url: str):
 
 async def extract_content_site(url: str):
     logger.info(f"Preparing to extract content for {url}")
+    logger.info(f"using prompt: {EXTRACTING_PROMPT}")
     response = model.generate_content(f"{EXTRACTING_PROMPT} {url}")
     logger.info("Content Extracted.")
-    return ResponseContent(**json.loads(response.text))
+    logger.info(response.text.strip("```json").strip("```"))
+    return ResponseContent(**json.loads(response.text.strip("```json").strip("```")))

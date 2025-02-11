@@ -1,7 +1,8 @@
 import os
+
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 
 # Database
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite://db.sqlite3")
@@ -17,7 +18,7 @@ NEWS_PERIOD = os.getenv("NEWS_PERIOD", "7d")
 HTTPS_PROXY = os.getenv("HTTPS_PROXY")
 
 # Analysis
-AI_MODEL = os.getenv("AI_MODEL", "gemini-2.0-flash-exp")
+AI_MODEL = os.getenv("AI_MODEL", "gemini-2.0-flash")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 RC_ANALYSIS_PROMPT = os.getenv("RC_ANALYSIS_PROMPT")
 SENTIMENT_ANALYSIS_PROMPT = os.getenv("SENTIMENT_ANALYSIS_PROMPT")

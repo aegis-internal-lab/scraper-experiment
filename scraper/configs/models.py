@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from email.policy import default
 from enum import Enum
 
 from tortoise import fields
@@ -8,8 +7,8 @@ from tortoise.models import Model
 
 class Site(Model):
     id = fields.IntField(pk=True)
-    title= fields.TextField(null=True)
-    content= fields.TextField(null=True)
+    title = fields.TextField(null=True)
+    content = fields.TextField(null=True)
     masked_url = fields.CharField(max_length=500)
     url = fields.CharField(max_length=500, unique=True)
     is_extracted = fields.BooleanField(default=False)
@@ -32,6 +31,7 @@ class Status(Enum):
 class ResponseJSON:
     status: Status
     message: str
+
 
 @dataclass
 class ResponseContent:
