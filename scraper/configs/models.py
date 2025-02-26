@@ -8,6 +8,8 @@ from tortoise.models import Model
 class Site(Model):
     id = fields.IntField(pk=True)
     title = fields.TextField(null=True)
+    published_date = fields.DatetimeField()
+    keyword = fields.TextField()
     content = fields.TextField(null=True)
     masked_url = fields.CharField(max_length=500)
     url = fields.CharField(max_length=500, unique=True)
