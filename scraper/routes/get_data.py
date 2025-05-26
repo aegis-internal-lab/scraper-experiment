@@ -1,9 +1,8 @@
-from blacksheep import HTTPException, ok
-from tortoise.contrib.pydantic import pydantic_model_creator
+from blacksheep import HTTPException, json
 
-from scraper.configs.models import Site
 from scraper.configs.openapidocs import docs
 from scraper.routes.routers import base
+from scraper.services.data_service import DataService
 
 
 @docs(
@@ -20,10 +19,16 @@ async def get_data():
     """
     Get All Data from the database
     """
-    SitePydantic = pydantic_model_creator(Site, name="site_db")
+    try:
+        data_service = DataService()
+        sites = await data_service.get_all_sites()
 
-    items = Site.all()
-    if not await items:
-        raise HTTPException(status=404, message="No items found")
+        if not sites:
+            raise HTTPException(status=404, message="No items found")
 
-    return ok(await SitePydantic.from_queryset(items))
+        return json(sites, status=200)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status=500, message=f"Error fetching data: {str(e)}")

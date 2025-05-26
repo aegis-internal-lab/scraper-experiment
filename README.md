@@ -1,71 +1,195 @@
 # Scraper Experiment
 
-## Gettin Started
+A modern news scraping and AI analysis service built with BlackSheep, Tortoise ORM, and Google's Gemini AI.
 
-This repo is made using [`poetry`](https://python-poetry.org) so install poetry first. After that, all you have to do is run `poetry install` and then `poetry run server` to activate the endpoints assuming that you already set the necessary `.env`.
+## Features
 
-### ENV File Content
-In order to run the server, you have to add the necessary `.env` at the **project root**
+- 🔍 **News Scraping**: Fetch news from Google News using keywords
+- 🤖 **AI Analysis**: Root cause analysis, sentiment analysis, and prominent analysis using Google's Gemini AI
+- 📊 **Data Management**: Store and retrieve scraped news data
+- 🚀 **REST API**: Well-documented RESTful endpoints
+- 🐳 **Docker Support**: Ready for containerized deployment
+- 🧪 **Testing**: Comprehensive test suite with coverage
+- 📝 **Logging**: Structured logging for monitoring and debugging
+
+## Architecture
+
+The project follows a clean architecture pattern with:
+
+- **Services Layer**: Business logic separated into service classes
+- **Routes Layer**: HTTP endpoint handlers
+- **Models Layer**: Database models and schemas
+- **Core Layer**: Configuration, exceptions, and utilities
+- **Dependency Injection**: Proper service management
+
+## Getting Started
+
+### Prerequisites
+
+- Python 3.12+
+- [Poetry](https://python-poetry.org) for dependency management
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd scraper-experiment
+```
+
+2. Install dependencies:
+```bash
+make dev-install
+# or
+poetry install
+```
+
+3. Create your `.env` file (see [Environment Configuration](#environment-configuration) below)
+
+4. Run the server:
+```bash
+make run
+# or
+poetry run server
+```
+
+### Development
+
+Run in development mode with auto-reload:
+```bash
+make dev
+```
+
+Run tests:
+```bash
+make test
+```
+
+Run tests with coverage:
+```bash
+make test-cov
+```
+
+Format code:
+```bash
+make format
+```
+
+Run linting:
+```bash
+make lint
+```
+
+Run all checks:
+```bash
+make check
+```
+
+## Environment Configuration
+
+Create a `.env` file in the project root with the following variables:
 
 ```env
 # ====================
 # DATABASE CONFIGURATION
 # ====================
-# The URL for the database connection. 
-# Default is SQLite for local development. Replace with your database URL for production.
 DATABASE_URL=sqlite://db.sqlite3
 
 # ====================
 # LOGGING CONFIGURATION
 # ====================
-# The logging level for the application.
-# Options: DEBUG, INFO, WARNING, ERROR, CRITICAL. Default is INFO.
 LOG_LEVEL=INFO
-
-# The name of the file where logs will be stored.
 LOGGER_FILE_NAME=news_scraper.log
+
+# ====================
+# SERVER CONFIGURATION
+# ====================
+SERVER_HOST=0.0.0.0
+SERVER_PORT=5000
+SERVER_RELOAD=false
+SERVER_LOG_LEVEL=info
 
 # ====================
 # SCRAPER CONFIGURATION
 # ====================
-# Time interval (in seconds) between each scraping job.
-# Default is 5 seconds.
 INTERVAL_TIME=5
-
-# The maximum number of results to return per scraping job.
-# Default is 3 results.
 MAX_RESULTS=3
-
-# The period for news articles to be scraped.
-# Format: "Nd" (e.g., "7d" for 7 days). Default is 7 days.
 NEWS_PERIOD=7d
-
-# HTTPS proxy to route scraper traffic through (optional).
-# Leave blank if no proxy is needed.
 HTTPS_PROXY=
 
 # ====================
-# ANALYSIS CONFIGURATION
+# AI CONFIGURATION
 # ====================
-# The AI model to be used for analysis. 
-# Default is "gemini-2.0-flash-exp". Replace with your desired model.
 AI_MODEL=gemini-2.0-flash
+GEMINI_API_KEY=your_gemini_api_key_here
 
-# The API key for the AI model. Required for authentication. get it from https://ai.google.dev/gemini-api/docs/api-key
-GEMINI_API_KEY=
-
-# Prompts for various types of analyses.
-# Add your custom prompt text or leave blank for default behavior.
-
-# For analyzing Root Cause Analysis or 5W1H Analysis.
-RC_ANALYSIS_PROMPT=Perform a detailed 5W1H analysis of the provided content. Break down the information explicitly into the following categories:\n1. Who: Identify the key individuals, groups, or entities involved.\n2. What: Define the main event, action, or subject matter.\n3. When: Specify the time frame or timeline of relevance.\n4. Where: Determine the location(s) or setting of the events.\n5. Why: Explain the reasons, motivations, or context behind the events.\n6. How: Describe the methods, processes, or means by which the events occurred.\nEnsure the output is concise, structured, and relevant to the content, with no additional commentary or irrelevant information. the provided content url is
-
-# For analyzing sentiment (positive, negative, neutral).
-SENTIMENT_ANALYSIS_PROMPT=
-
-# For analyzing prominent details in the scraped data.
-PROMINENT_ANALYSIS_PROMPT=
-
-# For extracting specific information from the scraped data.
-EXTRACTING_PROMPT=Extract the title and content from the given URL and return them as a single-line, valid JSON string, with no surrounding backticks, markdown, or other commentary. The JSON must adhere to the following format: {"title": "Title of the URL, or 'N/A' if unavailable", "content": "Content of the URL article, or 'N/A' if unavailable"}. The output must contain only the single-line, valid JSON string. Ensure proper JSON escaping for special characters within the title and content fields (e.g., quotes, backslashes, etc.). Prioritize extracting the most relevant content, focusing on the main article text and excluding navigation, ads, or boilerplate. If the URL points to a non-textual resource (e.g., an image or PDF), return "N/A" for both "title" and "content". Handle potential errors (e.g., network issues, invalid URLs) gracefully and return a valid JSON with "N/A" values where necessary.
+# Analysis prompts (optional - defaults will be used if not provided)
+RC_ANALYSIS_PROMPT=Perform a detailed 5W1H analysis...
+SENTIMENT_ANALYSIS_PROMPT=Analyze the sentiment...
+PROMINENT_ANALYSIS_PROMPT=Identify the most prominent...
+EXTRACTING_PROMPT=Extract the title and content...
 ```
+
+## API Endpoints
+
+### Health Check
+- `GET /health` - Service health check
+- `GET /info` - Service information
+
+### News
+- `GET /get-news/?keyword=<keyword>&use_rca=<boolean>` - Fetch news by keyword
+
+### Data
+- `GET /get-data/` - Get all scraped data
+
+### Analysis
+- `GET /gen-all-analysis?url=<url>` - Generate all types of analysis
+- `GET /gen-rc-analysis?url=<url>` - Generate root cause analysis
+
+### Documentation
+- Visit `/docs` for interactive API documentation
+
+## Docker Deployment
+
+Build and run with Docker:
+```bash
+make docker-build
+make docker-run
+```
+
+Or use docker-compose directly:
+```bash
+docker-compose up -d
+```
+
+## Project Structure
+
+```
+scraper/
+├── configs/          # Configuration and models
+├── core/            # Core utilities, exceptions, DI container
+├── libs/            # Utility libraries and legacy code
+├── routes/          # HTTP route handlers
+├── schemas/         # Pydantic schemas for validation
+└── services/        # Business logic services
+```
+
+## Development Guidelines
+
+- Follow PEP 8 style guidelines
+- Write tests for new functionality
+- Use type hints
+- Document your code
+- Follow the service pattern for business logic
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests and linting
+5. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License.
