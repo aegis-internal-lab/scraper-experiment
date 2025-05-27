@@ -1,4 +1,4 @@
-FROM python:3.12-buster AS BUILDER
+FROM python:3.12 AS builder
 
 RUN pip install poetry==1.4.2
 
@@ -14,12 +14,12 @@ RUN touch README.md
 
 RUN --mount=type=cache,target=$POETRY_CACHE_DIR poetry install --without dev --no-root
 
-FROM python:3.12-slim-buster AS RUNTIME
+FROM python:3.12-slim AS runtime
 
 ENV VIRTUAL_ENV=/app/.venv \
     PATH="/app/.venv/bin:$PATH"
 
-COPY --from=BUILDER ${VIRTUAL_ENV} ${VIRTUAL_ENV}
+COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
 
 COPY scraper ./scraper
 
