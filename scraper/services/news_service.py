@@ -1,7 +1,7 @@
 from email.utils import parsedate_to_datetime
 
-from gnews import GNews
-from googlenewsdecoder import new_decoderv1
+from gnews import GNews # type: ignore
+from googlenewsdecoder import new_decoderv1 # type: ignore
 
 from scraper.configs.constants import INTERVAL_TIME, MAX_RESULTS, NEWS_PERIOD
 from scraper.configs.models import ResponseJSON, Site, Status

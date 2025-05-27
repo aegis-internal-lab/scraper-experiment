@@ -1,7 +1,6 @@
 """
 Enhanced proxy validation utility for the scraper application with rotation support
 """
-import logging
 import urllib.request
 from typing import Dict, Optional, Tuple
 

@@ -61,12 +61,12 @@ app = create_app()
 def server():
     """Start the server"""
     config = uvicorn.Config(
-        "scraper.main:create_app",
+        "scraper.main:app",  # Use the existing app instance instead of factory
         port=5000,
         log_level="info",
         reload=False,
         host="0.0.0.0",
-        factory=True,
+        factory=False,  # Don't use factory since we're providing the app instance
     )
     server = uvicorn.Server(config)
 

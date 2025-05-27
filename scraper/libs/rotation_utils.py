@@ -4,7 +4,7 @@ Enhanced rotation utilities for proxy and user agent management
 import asyncio
 import random
 import threading
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, List, Optional, Any
 
 from scraper.configs.constants import (
     HTTP_PROXY,

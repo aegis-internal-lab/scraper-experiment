@@ -1,7 +1,7 @@
 from email.utils import parsedate_to_datetime  # Parses RFC 2822 dates
 
-from gnews import GNews
-from googlenewsdecoder import new_decoderv1
+from gnews import GNews # type: ignore
+from googlenewsdecoder import new_decoderv1 # type: ignore
 
 from scraper.configs.constants import (
     GNEWS_COUNTRY,

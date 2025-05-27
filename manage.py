@@ -4,7 +4,7 @@ Management script for testing scraper rotation and anti-detection features
 """
 import asyncio
 import sys
-from typing import Dict, Any
+from typing import Any
 
 from scraper.libs.logger import setup_logger
 from scraper.libs.proxy_utils import validate_proxy_configuration
