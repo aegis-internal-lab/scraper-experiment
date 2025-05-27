@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import os
 
 import daemon
@@ -11,9 +12,20 @@ from scraper.configs.openapidocs import docs
 from scraper.routes.routers import base
 
 
-def create_app():
-    app = Application(router=base)
+def setup_logging():
+    """Setup application logging"""
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        handlers=[logging.FileHandler("news_scraper.log"), logging.StreamHandler()],
+    )
 
+
+def create_app():
+    """Create and configure the BlackSheep application"""
+    setup_logging()
+
+    app = Application(router=base)
     docs.bind_app(app)
 
     register_tortoise(
@@ -22,12 +34,39 @@ def create_app():
         modules={"models": ["scraper.configs.models"]},
         generate_schemas=True,
     )
+
+    # Add error handlers
+    @app.exception_handler(404)
+    async def not_found_handler(app, request, exception):
+        from blacksheep import json
+        return json({"error": "Not Found", "message": str(exception), "status_code": 404}, status=404)
+
+    @app.exception_handler(500)
+    async def server_error_handler(app, request, exception):
+        from blacksheep import json
+        logging.error(f"Server error: {exception}")
+        return json({
+            "error": "Internal Server Error",
+            "message": "An unexpected error occurred",
+            "status_code": 500,
+        }, status=500)
+
     return app
 
 
+# Create app instance for ASGI server
+app = create_app()
+
+
 def server():
+    """Start the server"""
     config = uvicorn.Config(
-        "scraper.main:create_app", port=5000, log_level="info", reload=False, host="0.0.0.0"
+        "scraper.main:app",  # Use the existing app instance instead of factory
+        port=5000,
+        log_level="info",
+        reload=False,
+        host="0.0.0.0",
+        factory=False,  # Don't use factory since we're providing the app instance
     )
     server = uvicorn.Server(config)
 
@@ -38,10 +77,11 @@ def server():
 
 
 def run_as_daemon():
+    """Run the server as a daemon"""
     with daemon.DaemonContext(
-        working_directory=os.getcwd(),  # Ensure it runs in the project directory
-        stdout=open("/tmp/app_stdout.log", "a"),  # Redirect standard output
-        stderr=open("/tmp/app_stderr.log", "a"),  # Redirect standard error
+        working_directory=os.getcwd(),
+        stdout=open("/tmp/app_stdout.log", "a"),
+        stderr=open("/tmp/app_stderr.log", "a"),
     ):
         server()
 

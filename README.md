@@ -1,71 +1,339 @@
 # Scraper Experiment
 
-## Gettin Started
+A modern news scraping and AI analysis service built with BlackSheep, Tortoise ORM, and Google's Gemini AI.
 
-This repo is made using [`poetry`](https://python-poetry.org) so install poetry first. After that, all you have to do is run `poetry install` and then `poetry run server` to activate the endpoints assuming that you already set the necessary `.env`.
+## Features
 
-### ENV File Content
-In order to run the server, you have to add the necessary `.env` at the **project root**
+- 🔍 **News Scraping**: Fetch news from Google News using keywords
+- 🤖 **AI Analysis**: Root cause analysis, sentiment analysis, and prominent analysis using Google's Gemini AI
+- 🔄 **Anti-Detection**: Advanced proxy rotation, user agent rotation, and enhanced rate limiting with jitter
+- 🌐 **Proxy Support**: Multiple proxy configuration with automatic rotation
+- 📊 **Data Management**: Store and retrieve scraped news data
+- 🚀 **REST API**: Well-documented RESTful endpoints
+- 🐳 **Docker Support**: Ready for containerized deployment
+- 🧪 **Testing**: Comprehensive test suite with coverage
+- 📝 **Logging**: Structured logging for monitoring and debugging
+
+## Architecture
+
+The project follows a clean architecture pattern with:
+
+- **Services Layer**: Business logic separated into service classes
+- **Routes Layer**: HTTP endpoint handlers
+- **Models Layer**: Database models and schemas
+- **Core Layer**: Configuration, exceptions, and utilities
+- **Dependency Injection**: Proper service management
+
+## Getting Started
+
+### Prerequisites
+
+- Python 3.12+
+- [Poetry](https://python-poetry.org) for dependency management
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd scraper-experiment
+```
+
+2. Install dependencies:
+```bash
+make dev-install
+# or
+poetry install
+```
+
+3. Create your `.env` file (see [Environment Configuration](#environment-configuration) below)
+
+4. Run the server:
+```bash
+make run
+# or
+poetry run server
+```
+
+### Development
+
+Run in development mode with auto-reload:
+```bash
+make dev
+```
+
+Run tests:
+```bash
+make test
+```
+
+Run tests with coverage:
+```bash
+make test-cov
+```
+
+Format code:
+```bash
+make format
+```
+
+Run linting:
+```bash
+make lint
+```
+
+Run all checks:
+```bash
+make check
+```
+
+## Environment Configuration
+
+Create a `.env` file in the project root with the following variables:
 
 ```env
 # ====================
 # DATABASE CONFIGURATION
 # ====================
-# The URL for the database connection. 
-# Default is SQLite for local development. Replace with your database URL for production.
 DATABASE_URL=sqlite://db.sqlite3
 
 # ====================
 # LOGGING CONFIGURATION
 # ====================
-# The logging level for the application.
-# Options: DEBUG, INFO, WARNING, ERROR, CRITICAL. Default is INFO.
 LOG_LEVEL=INFO
-
-# The name of the file where logs will be stored.
 LOGGER_FILE_NAME=news_scraper.log
+
+# ====================
+# SERVER CONFIGURATION
+# ====================
+SERVER_HOST=0.0.0.0
+SERVER_PORT=5000
+SERVER_RELOAD=false
+SERVER_LOG_LEVEL=info
 
 # ====================
 # SCRAPER CONFIGURATION
 # ====================
-# Time interval (in seconds) between each scraping job.
-# Default is 5 seconds.
 INTERVAL_TIME=5
-
-# The maximum number of results to return per scraping job.
-# Default is 3 results.
 MAX_RESULTS=3
-
-# The period for news articles to be scraped.
-# Format: "Nd" (e.g., "7d" for 7 days). Default is 7 days.
 NEWS_PERIOD=7d
 
-# HTTPS proxy to route scraper traffic through (optional).
-# Leave blank if no proxy is needed.
-HTTPS_PROXY=
+# ====================
+# ENHANCED RATE LIMITING
+# ====================
+# Jitter range for random delays (in seconds)
+JITTER_MIN=1.0
+JITTER_MAX=3.0
 
 # ====================
-# ANALYSIS CONFIGURATION
+# PROXY CONFIGURATION
 # ====================
-# The AI model to be used for analysis. 
-# Default is "gemini-2.0-flash-exp". Replace with your desired model.
+# Single proxy configuration (basic)
+# HTTP_PROXY=http://your-proxy-server:port
+# HTTPS_PROXY=https://your-proxy-server:port
+
+# Multiple proxy configuration for rotation
+# Format: "proxy1:port,proxy2:port,proxy3:port"
+# PROXY_LIST=proxy1.example.com:8080,proxy2.example.com:8080,proxy3.example.com:8080
+
+# Enable proxy rotation (requires PROXY_LIST or multiple proxies)
+USE_PROXY_ROTATION=false
+
+# ====================
+# USER AGENT ROTATION
+# ====================
+# Enable user agent rotation for anti-detection
+USE_USER_AGENT_ROTATION=true
+
+# ====================
+# PROXY CONFIGURATION (Optional)
+# ====================
+# HTTP_PROXY=http://your-proxy-server:port
+# HTTPS_PROXY=https://your-proxy-server:port
+
+# ====================
+# GNEWS CONFIGURATION (Optional)
+# ====================
+GNEWS_LANGUAGE=en
+GNEWS_COUNTRY=US
+# GNEWS_EXCLUDE_WEBSITES=yahoo.com,cnn.com
+
+# ====================
+# AI CONFIGURATION
+# ====================
 AI_MODEL=gemini-2.0-flash
+GEMINI_API_KEY=your_gemini_api_key_here
 
-# The API key for the AI model. Required for authentication. get it from https://ai.google.dev/gemini-api/docs/api-key
-GEMINI_API_KEY=
-
-# Prompts for various types of analyses.
-# Add your custom prompt text or leave blank for default behavior.
-
-# For analyzing Root Cause Analysis or 5W1H Analysis.
-RC_ANALYSIS_PROMPT=Perform a detailed 5W1H analysis of the provided content. Break down the information explicitly into the following categories:\n1. Who: Identify the key individuals, groups, or entities involved.\n2. What: Define the main event, action, or subject matter.\n3. When: Specify the time frame or timeline of relevance.\n4. Where: Determine the location(s) or setting of the events.\n5. Why: Explain the reasons, motivations, or context behind the events.\n6. How: Describe the methods, processes, or means by which the events occurred.\nEnsure the output is concise, structured, and relevant to the content, with no additional commentary or irrelevant information. the provided content url is
-
-# For analyzing sentiment (positive, negative, neutral).
-SENTIMENT_ANALYSIS_PROMPT=
-
-# For analyzing prominent details in the scraped data.
-PROMINENT_ANALYSIS_PROMPT=
-
-# For extracting specific information from the scraped data.
-EXTRACTING_PROMPT=Extract the title and content from the given URL and return them as a single-line, valid JSON string, with no surrounding backticks, markdown, or other commentary. The JSON must adhere to the following format: {"title": "Title of the URL, or 'N/A' if unavailable", "content": "Content of the URL article, or 'N/A' if unavailable"}. The output must contain only the single-line, valid JSON string. Ensure proper JSON escaping for special characters within the title and content fields (e.g., quotes, backslashes, etc.). Prioritize extracting the most relevant content, focusing on the main article text and excluding navigation, ads, or boilerplate. If the URL points to a non-textual resource (e.g., an image or PDF), return "N/A" for both "title" and "content". Handle potential errors (e.g., network issues, invalid URLs) gracefully and return a valid JSON with "N/A" values where necessary.
+# Analysis prompts (optional - defaults will be used if not provided)
+RC_ANALYSIS_PROMPT=Perform a detailed 5W1H analysis...
+SENTIMENT_ANALYSIS_PROMPT=Analyze the sentiment...
+PROMINENT_ANALYSIS_PROMPT=Identify the most prominent...
+EXTRACTING_PROMPT=Extract the title and content...
 ```
+
+### Anti-Detection Features
+
+The scraper includes sophisticated anti-detection features to avoid getting banned:
+
+#### **🔄 Proxy Rotation**
+- **Multiple Proxies**: Configure multiple proxies for automatic rotation
+- **Round Robin**: Proxies are cycled automatically for each request
+- **Fallback**: Falls back to single proxy if rotation is disabled
+
+#### **🕵️ User Agent Rotation**
+- **Diverse Browsers**: Rotates between Chrome, Firefox, Safari, Edge user agents
+- **Multiple Platforms**: Windows, macOS, and Linux user agent strings
+- **Realistic Headers**: Complete HTTP headers that mimic real browsers
+
+#### **⏱️ Enhanced Rate Limiting**
+- **Jitter**: Random delays between requests to avoid patterns
+- **Adaptive**: Delays increase based on request count
+- **Configurable**: Adjustable base interval and jitter range
+
+#### **🎯 Smart Distribution**
+- **Session Management**: Fresh proxy/user-agent combination per session
+- **Request Spreading**: Distributes load across multiple endpoints
+- **Error Handling**: Graceful handling of proxy failures
+
+### Configuration Examples
+
+#### Basic Proxy Setup
+```env
+HTTP_PROXY=http://proxy.company.com:8080
+HTTPS_PROXY=https://proxy.company.com:8080
+```
+
+#### Advanced Proxy Rotation
+```env
+PROXY_LIST=proxy1.example.com:8080,proxy2.example.com:8080,proxy3.example.com:8080
+USE_PROXY_ROTATION=true
+```
+
+#### Rate Limiting Configuration
+```env
+INTERVAL_TIME=5        # Base delay between requests
+JITTER_MIN=1.0        # Minimum random jitter
+JITTER_MAX=3.0        # Maximum random jitter
+```
+
+#### User Agent Rotation
+```env
+USE_USER_AGENT_ROTATION=true   # Enable user agent rotation
+```
+
+#### GNews Configuration
+
+Customize the news scraping behavior:
+
+- **GNEWS_LANGUAGE**: Language code (e.g., 'en', 'es', 'fr', 'de')
+- **GNEWS_COUNTRY**: Country code (e.g., 'US', 'GB', 'CA', 'AU')
+- **GNEWS_EXCLUDE_WEBSITES**: Comma-separated list of websites to exclude
+
+Example:
+```env
+GNEWS_LANGUAGE=en
+GNEWS_COUNTRY=US
+GNEWS_EXCLUDE_WEBSITES=yahoo.com,cnn.com,foxnews.com
+```
+
+## API Endpoints
+
+### Health Check
+- `GET /health` - Service health check
+- `GET /info` - Service information
+
+### Status & Monitoring
+- `GET /status/rotation` - View rotation and anti-detection status
+- `GET /status/proxy` - Validate proxy configuration
+
+### News
+- `GET /get-news/?keyword=<keyword>&use_rca=<boolean>` - Fetch news by keyword
+
+### Data
+- `GET /get-data/` - Get all scraped data
+
+### Analysis
+- `GET /gen-all-analysis?url=<url>` - Generate all types of analysis
+- `GET /gen-rc-analysis?url=<url>` - Generate root cause analysis
+
+### Documentation
+- Visit `/docs` for interactive API documentation
+
+## Docker Deployment
+
+Build and run with Docker:
+```bash
+make docker-build
+make docker-run
+```
+
+Or use docker-compose directly:
+```bash
+docker-compose up -d
+```
+
+## Project Structure
+
+```
+scraper/
+├── configs/          # Configuration and models
+├── core/            # Core utilities, exceptions, DI container
+├── libs/            # Utility libraries and legacy code
+├── routes/          # HTTP route handlers
+├── schemas/         # Pydantic schemas for validation
+└── services/        # Business logic services
+```
+
+## Development Guidelines
+
+- Follow PEP 8 style guidelines
+- Write tests for new functionality
+- Use type hints
+- Document your code
+- Follow the service pattern for business logic
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests and linting
+5. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License.
+
+## Management Commands
+
+The project includes a comprehensive management script for testing and debugging the rotation features:
+
+### Testing Anti-Detection Features
+```bash
+# Test all rotation features
+python manage.py all
+
+# Test specific components
+python manage.py status          # View rotation status
+python manage.py proxy           # Test proxy configuration  
+python manage.py user-agent      # Test user agent rotation
+python manage.py proxy-rotation  # Test proxy rotation
+python manage.py news            # Test news fetching with rotation
+```
+
+### Available Commands
+- **status**: Display current rotation and anti-detection configuration
+- **proxy**: Validate proxy configuration and test connectivity
+- **user-agent**: Test user agent rotation functionality
+- **proxy-rotation**: Test proxy rotation if configured
+- **news**: Test news fetching with all rotation features enabled
+- **all**: Run comprehensive test suite covering all features
+
+### Management Script Features
+- **🔍 Comprehensive Testing**: Tests all rotation and anti-detection features
+- **📊 Detailed Status**: Shows configuration and performance metrics
+- **✅ Validation**: Verifies proxy connectivity and rotation functionality
+- **💡 Recommendations**: Provides optimization suggestions
+- **🎯 Targeted Testing**: Individual component testing for debugging
+
+## Running the Application

@@ -6,7 +6,7 @@ from tortoise.models import Model
 
 
 class Site(Model):
-    id = fields.IntField(pk=True)
+    id = fields.IntField(primary_key=True)
     title = fields.TextField(null=True)
     published_date = fields.DatetimeField()
     keyword = fields.TextField()
