@@ -1,9 +1,7 @@
 import asyncio
 import logging
-import os
 import signal
 
-import daemon # type: ignore
 import uvicorn
 from blacksheep import Application
 from tortoise.contrib.blacksheep import register_tortoise
@@ -113,20 +111,5 @@ def server():
         raise
 
 
-def run_as_daemon():
-    """Run the server as a daemon"""
-    with daemon.DaemonContext(
-        working_directory=os.getcwd(),
-        stdout=open("/tmp/app_stdout.log", "a"),
-        stderr=open("/tmp/app_stderr.log", "a"),
-    ):
-        server()
-
-
 if __name__ == "__main__":
-    import sys
-
-    if len(sys.argv) > 1 and sys.argv[1] == "daemon":
-        run_as_daemon()
-    else:
-        server()
+    server()
