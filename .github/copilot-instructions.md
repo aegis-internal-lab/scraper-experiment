@@ -1,3 +1,4 @@
 - Always try using poetry run instead of python to run commands.
 - Use `poetry run python -m pytest` to run tests.
 - Use `poetry run server` to start the server.
+- The project is using blacksheep instead of FastAPI.

@@ -3,7 +3,7 @@ import logging
 import os
 import signal
 
-import daemon
+import daemon # type: ignore
 import uvicorn
 from blacksheep import Application
 from tortoise.contrib.blacksheep import register_tortoise
