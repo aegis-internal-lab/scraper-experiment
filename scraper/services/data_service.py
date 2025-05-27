@@ -1,7 +1,5 @@
 from typing import List, Optional
 
-from tortoise.contrib.pydantic import pydantic_model_creator
-
 from scraper.configs.models import Site
 from scraper.services.interfaces import DataServiceInterface
 
@@ -11,10 +9,28 @@ class DataService(DataServiceInterface):
 
     async def get_all_sites(self) -> List[dict]:
         """Get all sites from database"""
-        SitePydantic = pydantic_model_creator(Site, name="site_db")
-        sites = Site.all()  # This returns a QuerySet
-        pydantic_sites = await SitePydantic.from_queryset(sites)
-        return [site.model_dump() for site in pydantic_sites]
+        sites = await Site.all()
+        return [
+            {
+                "id": site.id,
+                "title": site.title,
+                "published_date": site.published_date.isoformat() if site.published_date else None,
+                "keyword": site.keyword,
+                "content": site.content,
+                "masked_url": site.masked_url,
+                "url": site.url,
+                "is_extracted": site.is_extracted,
+                "has_rc_analysis": site.has_rc_analysis,
+                "rc_analysis": site.rc_analysis,
+                "has_sentiment_analysis": site.has_sentiment_analysis,
+                "sentiment_analysis": site.sentiment_analysis,
+                "has_prominent_analysis": site.has_prominent_analysis,
+                "prominent_analysis": site.prominent_analysis,
+                "created_at": site.created_at.isoformat() if site.created_at else None,
+                "updated_at": site.updated_at.isoformat() if site.updated_at else None,
+            }
+            for site in sites
+        ]
 
     async def get_site_by_url(self, url: str) -> Optional[Site]:
         """Get site by URL"""

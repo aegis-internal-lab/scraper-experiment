@@ -9,7 +9,7 @@ from typing import Any
 from scraper.libs.logger import setup_logger
 from scraper.libs.proxy_utils import validate_proxy_configuration
 from scraper.libs.rotation_utils import get_rotation_status, proxy_rotator, user_agent_rotator
-from scraper.libs.get_news import get_news_list
+from scraper.services.news_service import NewsService
 
 logger = setup_logger(__name__)
 
@@ -130,7 +130,7 @@ async def test_news_fetching():
         print("   Keyword: 'technology'")
         print("   Use RCA: False")
         
-        result = await get_news_list("technology", use_rca=False)
+        result = await NewsService().get_news_by_keyword("technology", use_rca=False)
         
         print(f"📊 Status: {result.status.value}")
         print(f"📊 Message: {result.message}")

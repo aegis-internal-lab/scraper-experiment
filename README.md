@@ -251,6 +251,9 @@ GNEWS_EXCLUDE_WEBSITES=yahoo.com,cnn.com,foxnews.com
 
 ### Data
 - `GET /get-data/` - Get all scraped data
+- `GET /get-data/by-url?url=<url>` - Get a specific site by URL
+- `GET /get-data/by-keyword?keyword=<keyword>` - Get sites by keyword
+- `GET /get-data/count` - Get total count of sites in database
 
 ### Analysis
 - `GET /gen-all-analysis?url=<url>` - Generate all types of analysis

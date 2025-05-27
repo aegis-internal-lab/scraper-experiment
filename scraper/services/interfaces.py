@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional
 
-from scraper.configs.models import ResponseJSON, Site
+from scraper.configs.models import ResponseJSON, ResponseContent, Site
 
 
 class NewsServiceInterface(ABC):
@@ -34,6 +34,11 @@ class AnalysisServiceInterface(ABC):
     @abstractmethod
     async def generate_all_analysis(self, url: str) -> Optional[dict]:
         """Generate all types of analysis for given URL"""
+        pass
+
+    @abstractmethod
+    async def extract_content_site(self, url: str) -> ResponseContent:
+        """Extract content from a website URL"""
         pass
 
 
