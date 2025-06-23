@@ -46,7 +46,7 @@ class AnalysisService(AnalysisServiceInterface):
 
             current_data = await Site.filter(url=url).first()
             if current_data:
-                logger.info(f"Saving {analysis_type} to database...")
+                logger.info(f"Saving {analysis_type} to     ...")
                 setattr(current_data, analysis_field, response.text)
                 setattr(current_data, has_analysis_field, True)
                 await current_data.save()
