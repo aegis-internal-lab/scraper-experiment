@@ -1,12 +1,15 @@
 import asyncio
 import logging
-import os
 import signal
+import sys
+import os
+from pathlib import Path
 
-import daemon # type: ignore
 import uvicorn
 from blacksheep import Application
 from tortoise.contrib.blacksheep import register_tortoise
+import daemon
+from daemon import pidfile
 
 from scraper.configs.constants import DATABASE_URL
 from scraper.configs.openapidocs import docs
@@ -15,13 +18,21 @@ from scraper.routes.routers import base
 # Global app instance - created only once
 _app_instance = None
 
+# Daemon configuration
+DAEMON_PID_FILE = "/tmp/scraper_daemon.pid"
+DAEMON_LOG_FILE = "scraper_daemon.log"
+DAEMON_WORKING_DIR = os.getcwd()
 
-def setup_logging():
+
+def setup_logging(log_file="news_scraper.log"):
     """Setup application logging"""
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        handlers=[logging.FileHandler("news_scraper.log"), logging.StreamHandler()],
+        handlers=[
+            logging.FileHandler(log_file),
+            logging.StreamHandler() if not os.getenv('DAEMON_MODE') else logging.NullHandler()
+        ],
     )
 
 
@@ -113,20 +124,123 @@ def server():
         raise
 
 
-def run_as_daemon():
-    """Run the server as a daemon"""
-    with daemon.DaemonContext(
-        working_directory=os.getcwd(),
-        stdout=open("/tmp/app_stdout.log", "a"),
-        stderr=open("/tmp/app_stderr.log", "a"),
-    ):
-        server()
+def daemon_server():
+    """Run the server as a daemon process"""
+    # Setup daemon-specific logging
+    os.environ['DAEMON_MODE'] = '1'
+    setup_logging(DAEMON_LOG_FILE)
+    
+    # Create daemon context
+    daemon_context = daemon.DaemonContext(
+        working_directory=DAEMON_WORKING_DIR,
+        pidfile=pidfile.TimeoutPIDLockFile(DAEMON_PID_FILE),
+        stdout=open(DAEMON_LOG_FILE, 'a'),
+        stderr=open(DAEMON_LOG_FILE, 'a'),
+    )
+    
+    # Setup signal handlers for daemon
+    def terminate_handler(signum, frame):
+        logging.info(f"Daemon received signal {signum}, shutting down...")
+        sys.exit(0)
+    
+    daemon_context.signal_map = {
+        signal.SIGTERM: terminate_handler,
+        signal.SIGINT: terminate_handler,
+    }
+    
+    try:
+        logging.info("Starting daemon...")
+        with daemon_context:
+            logging.info("Daemon started successfully")
+            server()
+    except Exception as e:
+        logging.error(f"Daemon error: {e}")
+        raise
+
+
+def stop_daemon():
+    """Stop the daemon process"""
+    pid_file_path = Path(DAEMON_PID_FILE)
+    
+    if not pid_file_path.exists():
+        print("Daemon is not running (no PID file found)")
+        return False
+    
+    try:
+        with open(pid_file_path, 'r') as f:
+            pid = int(f.read().strip())
+        
+        # Check if process is actually running
+        try:
+            os.kill(pid, 0)  # This doesn't kill, just checks if process exists
+        except OSError:
+            print(f"Process {pid} not found, removing stale PID file")
+            pid_file_path.unlink()
+            return False
+        
+        # Send SIGTERM to gracefully shutdown
+        print(f"Stopping daemon (PID: {pid})...")
+        os.kill(pid, signal.SIGTERM)
+        
+        # Wait a bit and check if it's gone
+        import time
+        for _ in range(10):  # Wait up to 10 seconds
+            try:
+                os.kill(pid, 0)
+                time.sleep(1)
+            except OSError:
+                print("Daemon stopped successfully")
+                return True
+        
+        # If still running, force kill
+        print("Daemon didn't stop gracefully, force killing...")
+        os.kill(pid, signal.SIGKILL)
+        print("Daemon force stopped")
+        return True
+        
+    except (ValueError, FileNotFoundError, PermissionError) as e:
+        print(f"Error stopping daemon: {e}")
+        return False
+
+
+def daemon_status():
+    """Check daemon status"""
+    pid_file_path = Path(DAEMON_PID_FILE)
+    
+    if not pid_file_path.exists():
+        print("Daemon is not running (no PID file)")
+        return False
+    
+    try:
+        with open(pid_file_path, 'r') as f:
+            pid = int(f.read().strip())
+        
+        try:
+            os.kill(pid, 0)  # Check if process exists
+            print(f"Daemon is running (PID: {pid})")
+            return True
+        except OSError:
+            print(f"Daemon PID file exists but process {pid} is not running")
+            print("Removing stale PID file...")
+            pid_file_path.unlink()
+            return False
+            
+    except (ValueError, FileNotFoundError) as e:
+        print(f"Error checking daemon status: {e}")
+        return False
 
 
 if __name__ == "__main__":
-    import sys
-
-    if len(sys.argv) > 1 and sys.argv[1] == "daemon":
-        run_as_daemon()
+    if len(sys.argv) > 1:
+        command = sys.argv[1]
+        if command == "daemon":
+            daemon_server()
+        elif command == "stop":
+            stop_daemon()
+        elif command == "status":
+            daemon_status()
+        else:
+            print(f"Unknown command: {command}")
+            print("Available commands: daemon, stop, status")
     else:
         server()

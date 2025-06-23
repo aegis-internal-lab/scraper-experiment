@@ -53,6 +53,8 @@ poetry install
 make run
 # or
 poetry run server
+# or if you want to run in background
+nohup poetry run server > /tmp/scraper.log 2>&1 &
 ```
 
 ### Development

@@ -36,8 +36,8 @@ class NewsService(NewsServiceInterface):
         # Add proxy configuration using rotation
         proxy_config = proxy_rotator.get_next_proxy()
         if proxy_config:
-            config["proxy"] = proxy_config
-            logger.info(f"Using proxy configuration: {list(proxy_config.keys())}")
+            config["proxy"] = proxy_config['https'] if 'https' in proxy_config else proxy_config['http']
+            logger.info(f"Using proxy configuration: {config['proxy']} ")
         
         # Add exclude websites if configured
         if GNEWS_EXCLUDE_WEBSITES:
@@ -85,7 +85,7 @@ class NewsService(NewsServiceInterface):
         try:
             # Use enhanced rate limiting with jitter
             await rate_limiter.adaptive_wait(request_count)
-            
+            logger.info(f"news['url'] type: {type(news['url'])}, value: {news['url']}")
             # Decode the masked Google News URL
             decoder = new_decoderv1(news["url"], interval=INTERVAL_TIME)
             real_url = decoder["decoded_url"]
