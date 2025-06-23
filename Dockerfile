@@ -23,4 +23,4 @@ COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
 
 COPY scraper ./scraper
 
-ENTRYPOINT ["python", "-m", "scraper.main:server"]
+ENTRYPOINT ["python", "-c", "from scraper.main import server; server()"]

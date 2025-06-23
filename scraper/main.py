@@ -24,16 +24,32 @@ DAEMON_LOG_FILE = "scraper_daemon.log"
 DAEMON_WORKING_DIR = os.getcwd()
 
 
+def is_daemon_mode():
+    """Check if running in daemon mode"""
+    return os.getenv('DAEMON_MODE') == '1'
+
+
 def setup_logging(log_file="news_scraper.log"):
     """Setup application logging"""
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        handlers=[
-            logging.FileHandler(log_file),
-            logging.StreamHandler() if not os.getenv('DAEMON_MODE') else logging.NullHandler()
-        ],
-    )
+    # Clear any existing handlers
+    root_logger = logging.getLogger()
+    root_logger.handlers.clear()
+    
+    # Create formatter
+    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    
+    # Always add file handler
+    file_handler = logging.FileHandler(log_file)
+    file_handler.setFormatter(formatter)
+    root_logger.addHandler(file_handler)
+    
+    # Add console handler only if not in daemon mode
+    if not is_daemon_mode():
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(formatter)
+        root_logger.addHandler(console_handler)
+    
+    root_logger.setLevel(logging.INFO)
 
 
 def create_app():
@@ -92,22 +108,45 @@ async def async_server():
         reload=False,
         host="0.0.0.0",
         factory=False,
+        access_log=not is_daemon_mode(),  # Disable access log in daemon mode
     )
     server = uvicorn.Server(config)
     
     # Setup signal handlers for graceful shutdown
+    shutdown_event = asyncio.Event()
+    
     def signal_handler():
         logging.info("Received shutdown signal, stopping server...")
+        shutdown_event.set()
         server.should_exit = True
     
-    # Register signal handlers
-    for sig in (signal.SIGTERM, signal.SIGINT):
-        signal.signal(sig, lambda s, f: signal_handler())
+    # Register signal handlers only if not in daemon mode (daemon handles its own signals)
+    if not is_daemon_mode():
+        for sig in (signal.SIGTERM, signal.SIGINT):
+            signal.signal(sig, lambda s, f: signal_handler())
     
     try:
-        await server.serve()
-    except asyncio.CancelledError:
+        # Start the server
+        server_task = asyncio.create_task(server.serve())
+        
+        # Wait for shutdown signal or server completion
+        done, pending = await asyncio.wait(
+            [server_task, asyncio.create_task(shutdown_event.wait())],
+            return_when=asyncio.FIRST_COMPLETED
+        )
+        
+        # Cancel any remaining tasks
+        for task in pending:
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+                
         logging.info("Server shutdown complete")
+        
+    except asyncio.CancelledError:
+        logging.info("Server cancelled")
     except Exception as e:
         logging.error(f"Server error: {e}")
         raise
@@ -126,16 +165,21 @@ def server():
 
 def daemon_server():
     """Run the server as a daemon process"""
-    # Setup daemon-specific logging
+    # Setup daemon-specific logging before daemonization
     os.environ['DAEMON_MODE'] = '1'
-    setup_logging(DAEMON_LOG_FILE)
     
-    # Create daemon context
+    # Open log files that will persist after daemonization
+    log_file = open(DAEMON_LOG_FILE, 'a')
+    
+    # Create daemon context with proper file handling
     daemon_context = daemon.DaemonContext(
         working_directory=DAEMON_WORKING_DIR,
         pidfile=pidfile.TimeoutPIDLockFile(DAEMON_PID_FILE),
-        stdout=open(DAEMON_LOG_FILE, 'a'),
-        stderr=open(DAEMON_LOG_FILE, 'a'),
+        stdin=open('/dev/null', 'r'),
+        stdout=log_file,
+        stderr=log_file,
+        files_preserve=[log_file],  # Keep log file open
+        detach_process=True,
     )
     
     # Setup signal handlers for daemon
@@ -151,65 +195,103 @@ def daemon_server():
     try:
         logging.info("Starting daemon...")
         with daemon_context:
+            # Setup logging again after daemonization
+            setup_logging(DAEMON_LOG_FILE)
             logging.info("Daemon started successfully")
-            server()
+            
+            # Run the server with proper asyncio handling for daemon
+            daemon_run_server()
     except Exception as e:
         logging.error(f"Daemon error: {e}")
         raise
 
 
+def daemon_run_server():
+    """Run server specifically for daemon mode with proper asyncio handling"""
+    try:
+        # Create a new event loop for the daemon process
+        if hasattr(asyncio, 'set_event_loop_policy'):
+            # Use a different event loop policy that works better with daemons
+            asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
+        
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        try:
+            loop.run_until_complete(async_server())
+        finally:
+            # Clean shutdown
+            pending = asyncio.all_tasks(loop)
+            if pending:
+                logging.info(f"Cancelling {len(pending)} pending tasks")
+                for task in pending:
+                    task.cancel()
+                
+                # Wait for all tasks to complete cancellation
+                loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+            
+            loop.close()
+            
+    except KeyboardInterrupt:
+        logging.info("Daemon shutdown requested")
+    except Exception as e:
+        logging.error(f"Daemon server error: {e}")
+        raise
+
+
 def stop_daemon():
     """Stop the daemon process"""
-    pid_file_path = Path(DAEMON_PID_FILE)
+    is_running, pid = is_daemon_running()
     
-    if not pid_file_path.exists():
-        print("Daemon is not running (no PID file found)")
+    if not is_running:
+        print("Daemon is not running")
         return False
     
     try:
-        with open(pid_file_path, 'r') as f:
-            pid = int(f.read().strip())
-        
-        # Check if process is actually running
-        try:
-            os.kill(pid, 0)  # This doesn't kill, just checks if process exists
-        except OSError:
-            print(f"Process {pid} not found, removing stale PID file")
-            pid_file_path.unlink()
-            return False
-        
         # Send SIGTERM to gracefully shutdown
+        if pid is None:
+            print("No valid PID found for daemon process.")
+            return False
         print(f"Stopping daemon (PID: {pid})...")
         os.kill(pid, signal.SIGTERM)
         
         # Wait a bit and check if it's gone
         import time
-        for _ in range(10):  # Wait up to 10 seconds
-            try:
-                os.kill(pid, 0)
-                time.sleep(1)
-            except OSError:
+        for i in range(30):  # Wait up to 30 seconds
+            time.sleep(1)
+            if not is_daemon_running()[0]:
                 print("Daemon stopped successfully")
                 return True
+            if i % 5 == 0:  # Print progress every 5 seconds
+                print(f"Waiting for daemon to stop... ({i+1}s)")
         
         # If still running, force kill
-        print("Daemon didn't stop gracefully, force killing...")
-        os.kill(pid, signal.SIGKILL)
-        print("Daemon force stopped")
+        if is_daemon_running()[0]:
+            print("Daemon didn't stop gracefully, force killing...")
+            if pid is not None:
+                os.kill(pid, signal.SIGKILL)
+                time.sleep(2)
+            
+            if is_daemon_running()[0]:
+                print("Failed to stop daemon")
+                return False
+            else:
+                print("Daemon force stopped")
+                return True
+        
         return True
         
-    except (ValueError, FileNotFoundError, PermissionError) as e:
+    except (PermissionError, ProcessLookupError) as e:
         print(f"Error stopping daemon: {e}")
         return False
 
 
-def daemon_status():
-    """Check daemon status"""
+def is_daemon_running():
+    """Check if daemon is currently running"""
     pid_file_path = Path(DAEMON_PID_FILE)
     
     if not pid_file_path.exists():
-        print("Daemon is not running (no PID file)")
-        return False
+        return False, None
     
     try:
         with open(pid_file_path, 'r') as f:
@@ -217,16 +299,26 @@ def daemon_status():
         
         try:
             os.kill(pid, 0)  # Check if process exists
-            print(f"Daemon is running (PID: {pid})")
-            return True
+            return True, pid
         except OSError:
-            print(f"Daemon PID file exists but process {pid} is not running")
-            print("Removing stale PID file...")
-            pid_file_path.unlink()
-            return False
+            # Process doesn't exist, remove stale PID file
+            pid_file_path.unlink(missing_ok=True)
+            return False, None
             
     except (ValueError, FileNotFoundError) as e:
-        print(f"Error checking daemon status: {e}")
+        logging.error(f"Error reading PID file: {e}")
+        return False, None
+
+
+def daemon_status():
+    """Check daemon status"""
+    is_running, pid = is_daemon_running()
+    
+    if is_running:
+        print(f"Daemon is running (PID: {pid})")
+        return True
+    else:
+        print("Daemon is not running")
         return False
 
 
@@ -244,3 +336,9 @@ if __name__ == "__main__":
             print("Available commands: daemon, stop, status")
     else:
         server()
+
+
+# For docker/module execution
+def main():
+    """Main entry point for module execution"""
+    server()
