@@ -2,7 +2,9 @@ import asyncio
 import json
 from typing import Optional
 
-from google import generativeai
+from google import genai
+from google.genai import types
+
 
 from scraper.configs.constants import (
     AI_MODEL,
@@ -18,8 +20,10 @@ from scraper.services.interfaces import AnalysisServiceInterface
 
 logger = setup_logger(__name__)
 
-generativeai.configure(api_key=GEMINI_API_KEY)
-model = generativeai.GenerativeModel(AI_MODEL)
+client = genai.Client(
+    api_key=GEMINI_API_KEY,
+    http_options=types.HttpOptions(api_version='v1alpha')
+)
 
 
 class AnalysisService(AnalysisServiceInterface):
@@ -41,7 +45,7 @@ class AnalysisService(AnalysisServiceInterface):
                 logger.warning(f"No prompt configured for {analysis_type}")
                 return
 
-            response = model.generate_content(f"{prompt} {url}")
+            response = client.models.generate_content(model=AI_MODEL, contents=f"{prompt} {url}")
             logger.info(f"{analysis_type} generated successfully")
 
             current_data = await Site.filter(url=url).first()
@@ -115,11 +119,11 @@ class AnalysisService(AnalysisServiceInterface):
                 raise ValueError("EXTRACTING_PROMPT not configured")
 
             logger.info(f"Using prompt: {EXTRACTING_PROMPT[:100]}...")
-            response = model.generate_content(f"{EXTRACTING_PROMPT} {url}")
+            response = client.models.generate_content(model=AI_MODEL, contents=f"{EXTRACTING_PROMPT} {url}")
             logger.info("Content extracted successfully")
 
             # Clean the response text
-            cleaned_response = response.text.strip("```json").strip("```").strip()
+            cleaned_response = response.text.strip("```json").strip("```").strip() if response.text is not None else ""
             logger.debug(f"Cleaned response: {cleaned_response}")
 
             return ResponseContent(**json.loads(cleaned_response))
